@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  DRAFT
+  OPEN
+  PAID
+  CANCELLED
+  FULFILLED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  AUTHORIZED
+  SETTLED
+  FAILED
+  CANCELED
+}
+
+enum CheckoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model Venue {
+  id           String   @id @default(cuid())
+  name         String
+  currency     String   @default("CHF")
+  vatRates     Json
+  address      String?
+  // NEW: Branding + Media
+  themeColor   String?           // z.B. "#0055FF"
+  logoUrl      String?           // S3 URL
+  coverImageUrl String?          // optional hero background
+  // ---
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  areas        Area[]
+  tables       Table[]
+  categories   MenuCategory[]
+  orders       Order[]
+  checkouts    Checkout[]
+  users        UserVenueRole[]
+  invoiceSeq   Int      @default(0)
+
+  @@index([name])
+}
+
+model Area {
+  id        String @id @default(cuid())
+  name      String
+  venue     Venue  @relation(fields: [venueId], references: [id])
+  venueId   String
+  tables    Table[]
+}
+
+model Table {
+  id        String     @id @default(cuid())
+  label     String
+  area      Area       @relation(fields: [areaId], references: [id])
+  areaId    String
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  venueId   String
+  qrToken   String     @unique   // unguessable token
+  orders    Order[]
+  checkouts Checkout[]
+
+  @@index([venueId])
+  @@index([areaId])
+}
+
+model MenuCategory {
+  id        String     @id @default(cuid())
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  venueId   String
+  name      String
+  position  Int        @default(0)
+  items     MenuItem[]
+
+  @@unique([venueId, name], name: "venueId_name")
+}
+
+model MenuItem {
+  id          String        @id @default(cuid())
+  category    MenuCategory  @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  name        String
+  description String?
+  price       Decimal       @db.Money
+  taxRate     Decimal       @db.Decimal(5,2)
+  allergens   String[]
+  imageUrl    String?
+  options     OptionGroup[]
+  isActive    Boolean       @default(true)
+  orderItems  OrderItem[]
+}
+
+model OptionGroup {
+  id        String      @id @default(cuid())
+  item      MenuItem    @relation(fields: [itemId], references: [id])
+  itemId    String
+  name      String
+  required  Boolean     @default(false)
+  min       Int         @default(0)
+  max       Int         @default(1)
+  choices   OptionChoice[]
+}
+
+model OptionChoice {
+  id        String   @id @default(cuid())
+  group     OptionGroup @relation(fields: [groupId], references: [id])
+  groupId   String
+  label     String
+  priceDiff Decimal  @db.Money
+}
+
+model Order {
+  id         String       @id @default(cuid())
+  venue      Venue        @relation(fields: [venueId], references: [id])
+  venueId    String
+  table      Table        @relation(fields: [tableId], references: [id])
+  tableId    String
+  status     OrderStatus  @default(DRAFT)
+  total      Decimal      @db.Money
+  tipAmount  Decimal?     @db.Money
+  taxTotal   Decimal      @db.Money
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  items      OrderItem[]
+  payments   Payment[]
+  checkout   Checkout?
+  invoiceNo  String?
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String
+  item       MenuItem @relation(fields: [itemId], references: [id])
+  itemId     String
+  qty        Int
+  unitPrice  Decimal  @db.Money
+  modifiers  Json
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  order            Order         @relation(fields: [orderId], references: [id])
+  orderId          String
+  provider         String
+  providerRef      String?
+  providerEventId  String?       @unique
+  status           PaymentStatus @default(CREATED)
+  amount           Decimal       @db.Money
+  raw              Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Checkout {
+  id            String         @id @default(cuid())
+  venue         Venue          @relation(fields: [venueId], references: [id])
+  venueId       String
+  table         Table          @relation(fields: [tableId], references: [id])
+  tableId       String
+  order         Order?         @relation(fields: [orderId], references: [id])
+  orderId       String?        @unique
+  status        CheckoutStatus @default(PENDING)
+  cartData      Json           // Store the cart items as JSON
+  totalAmount   Decimal        @db.Money
+  taxAmount     Decimal        @db.Money
+  tipAmount     Decimal?       @db.Money
+  sessionId     String?        @unique // For tracking checkout sessions
+  expiresAt     DateTime?      // When the checkout session expires
+  completedAt   DateTime?      // When checkout was completed
+  errorMessage  String?        // Store any error messages
+  metadata      Json?          // Additional checkout metadata
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([venueId])
+  @@index([tableId])
+  @@index([status])
+  @@index([sessionId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String   // hashed (argon2)
+  createdAt DateTime @default(now())
+  roles     UserVenueRole[]
+}
+
+model UserVenueRole {
+  id      String @id @default(cuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  venue   Venue  @relation(fields: [venueId], references: [id])
+  venueId String
+  role    String  // OWNER | MANAGER | STAFF
+
+  @@index([venueId, role])
+  @@unique([userId, venueId], name: "user_venue_unique")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  venueId   String?
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now())
+}

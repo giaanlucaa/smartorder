@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Thai Restaurant Theme */
+:root {
+  --thai-gold: #f4a261;
+  --thai-red: #e76f51;
+  --thai-green: #2a9d8f;
+  --thai-orange: #e9c46a;
+  --thai-dark: #264653;
+  --thai-light: #f1faee;
+}
+
+body {
+  background: linear-gradient(135deg, #f1faee 0%, #e9c46a 100%);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Thai-inspired gradient backgrounds */
+.thai-gradient {
+  background: linear-gradient(135deg, var(--thai-gold) 0%, var(--thai-orange) 50%, var(--thai-red) 100%);
+}
+
+.thai-gradient-subtle {
+  background: linear-gradient(135deg, #f1faee 0%, #e9c46a 20%, #f4a261 100%);
+}
+
+/* Thai-style cards */
+.thai-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--thai-gold);
+  box-shadow: 0 8px 32px rgba(244, 162, 97, 0.2);
+}
+
+/* Thai-style buttons */
+.thai-button {
+  background: linear-gradient(135deg, var(--thai-red) 0%, var(--thai-orange) 100%);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(231, 111, 81, 0.3);
+}
+
+.thai-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(231, 111, 81, 0.4);
+}
+
+.thai-button-secondary {
+  background: linear-gradient(135deg, var(--thai-green) 0%, var(--thai-dark) 100%);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(42, 157, 143, 0.3);
+}
+
+.thai-button-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(42, 157, 143, 0.4);
+}
+
+/* Thai-style text */
+.thai-title {
+  background: linear-gradient(135deg, var(--thai-red) 0%, var(--thai-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+/* Thai-style borders */
+.thai-border {
+  border: 3px solid;
+  border-image: linear-gradient(135deg, var(--thai-gold), var(--thai-red)) 1;
+}
+
+/* Menu item styling */
+.menu-item {
+  background: rgba(255, 255, 255, 0.9);
+  border-left: 4px solid var(--thai-gold);
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  background: rgba(244, 162, 97, 0.1);
+  border-left-color: var(--thai-red);
+  transform: translateX(5px);
+}
+
+/* Category headers */
+.category-header {
+  background: linear-gradient(135deg, var(--thai-dark) 0%, var(--thai-green) 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.category-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.category-header:hover::before {
+  left: 100%;
+}
+
+/* Spice level indicators */
+.spice-mild { color: var(--thai-green); }
+.spice-medium { color: var(--thai-orange); }
+.spice-hot { color: var(--thai-red); }
+
+/* Thai pattern overlay */
+.thai-pattern {
+  background-image: 
+    radial-gradient(circle at 25% 25%, var(--thai-gold) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, var(--thai-red) 2px, transparent 2px);
+  background-size: 20px 20px;
+  opacity: 0.1;
+}
