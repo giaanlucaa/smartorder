@@ -7,3 +7,6 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
 });
 
 if (process.env.NODE_ENV !== "production") (globalForPrisma as any).prisma = prisma;
+
+// Export tenant-aware utilities
+export { prismaForTenant, withTenantTransaction, withTenantRaw } from './tenantPrisma';

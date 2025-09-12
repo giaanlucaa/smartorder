@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@smartorder/db";
+import { prisma, prismaForTenant } from "@smartorder/db";
+import { getTenantIdFromRequest } from "@/lib/tenant";
 
 export async function POST(req: NextRequest) {
   // Set DATABASE_URL if not already set
@@ -17,9 +18,12 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    // Use tenant-aware Prisma client
+    const tenantDb = prismaForTenant(venueId);
+
     // Find the table
-    const table = await prisma.table.findFirst({ 
-      where: { venueId, qrToken: tableToken } 
+    const table = await tenantDb.table.findFirst({ 
+      where: { qrToken: tableToken } 
     });
     
     if (!table) {
@@ -37,9 +41,8 @@ export async function POST(req: NextRequest) {
     const finalTotal = totalAmount + taxAmount;
 
     // Create checkout session
-    const checkout = await prisma.checkout.create({
+    const checkout = await tenantDb.checkout.create({
       data: {
-        venueId,
         tableId: table.id,
         cartData,
         totalAmount: finalTotal,
@@ -100,17 +103,24 @@ export async function GET(req: NextRequest) {
   }
   
   try {
+    // Get tenant ID from request
+    const tenantId = getTenantIdFromRequest(req);
+    if (!tenantId) {
+      return NextResponse.json({ error: "Missing tenant ID" }, { status: 400 });
+    }
+
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('sessionId');
-    const venueId = searchParams.get('venueId');
     const status = searchParams.get('status');
+
+    // Use tenant-aware Prisma client
+    const tenantDb = prismaForTenant(tenantId);
 
     const where: any = {};
     if (sessionId) where.sessionId = sessionId;
-    if (venueId) where.venueId = venueId;
     if (status) where.status = status;
 
-    const checkouts = await prisma.checkout.findMany({
+    const checkouts = await tenantDb.checkout.findMany({
       where,
       include: {
         venue: {
@@ -149,4 +159,5 @@ export async function GET(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
 

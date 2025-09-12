@@ -7,16 +7,33 @@ export default function Success() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [isTest, setIsTest] = useState(false);
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [tableToken, setTableToken] = useState<string | null>(null);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     const orderIdParam = url.searchParams.get('orderId');
+    const orderParam = url.searchParams.get('order');
     const paymentParam = url.searchParams.get('payment');
     const testParam = url.searchParams.get('test');
     
-    setOrderId(orderIdParam);
+    setOrderId(orderIdParam || orderParam);
     setPaymentMethod(paymentParam);
     setIsTest(testParam === 'true');
+
+    // Try to get venueId and tableToken from localStorage (from previous cart)
+    try {
+      const savedCart = localStorage.getItem('smartorder_cart');
+      if (savedCart) {
+        const cartData = JSON.parse(savedCart);
+        if (cartData.venueId && cartData.tableToken) {
+          setVenueId(cartData.venueId);
+          setTableToken(cartData.tableToken);
+        }
+      }
+    } catch (error) {
+      console.log('Could not load cart data from localStorage');
+    }
   }, []);
 
   return (
@@ -57,12 +74,17 @@ export default function Success() {
           <p className="text-sm text-gray-500">
             Ihre Bestellung wurde an die Küche übertragen und wird in Kürze zubereitet.
           </p>
-          <Link 
-            href="/"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
-          >
-            Zur Startseite
-          </Link>
+          
+          <div className="flex justify-center">
+            {venueId && tableToken && (
+              <Link 
+                href={`/t/${venueId}/${tableToken}`}
+                className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors inline-block"
+              >
+                Haben Sie was vergessen?
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </main>

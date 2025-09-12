@@ -40,14 +40,21 @@ SmartOrder ist ein Multi-Tenant Bestellsystem für Restaurants. Gäste scannen Q
    ```
 
 3. **Umgebungsvariablen konfigurieren**
+   
+   **Für Payment-Free Setup (empfohlen für Tests):**
+   ```bash
+   cp env.payment-free.example .env.local
+   ```
+   
+   **Für vollständige Konfiguration:**
    ```bash
    cp env.example .env
    ```
    
-   Bearbeiten Sie die `.env` Datei und setzen Sie:
+   Bearbeiten Sie die `.env` oder `.env.local` Datei und setzen Sie:
    - `DATABASE_URL`: PostgreSQL Verbindungsstring
    - `NEXT_PUBLIC_APP_URL`: URL der Anwendung
-   - Optional: Payment Provider Keys (siehe unten)
+   - `PSP_PROVIDER`: "none" für Payment-Free, oder Payment Provider (siehe unten)
 
 4. **Datenbank einrichten**
    ```bash
@@ -62,11 +69,19 @@ SmartOrder ist ein Multi-Tenant Bestellsystem für Restaurants. Gäste scannen Q
 
 Die Anwendung ist dann unter `http://localhost:3000` verfügbar.
 
-## 💳 Payment Configuration (Optional)
+## 💳 Payment Configuration
 
-Das System läuft standardmäßig im **No-Payment-Modus**. Gäste können bestellen, werden aber direkt zur Success-Seite weitergeleitet.
+### Payment-Free Mode (Standard)
 
-Um Payment zu aktivieren, setzen Sie eine der folgenden Konfigurationen:
+Das System läuft standardmäßig im **Payment-Free-Modus**. Gäste können bestellen und werden direkt zur Success-Seite weitergeleitet - ideal für Tests und Restaurants mit Barzahlung.
+
+```env
+PSP_PROVIDER="none"
+```
+
+### Payment Provider aktivieren
+
+Um echte Zahlungen zu aktivieren, setzen Sie eine der folgenden Konfigurationen:
 
 ### DataTrans
 ```env

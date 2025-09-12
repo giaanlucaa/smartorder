@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-// @ts-expect-error: Module may not be available in all environments
 import { BrowserOrderLogger } from '@smartorder/core/browser-logger';
 
 interface CartItem {
@@ -22,6 +21,10 @@ export default function CheckoutPage() {
   const [venueId, setVenueId] = useState<string>('');
   const [tableToken, setTableToken] = useState<string>('');
   const [orderId, setOrderId] = useState<string>('');
+  const [showPay, setShowPay] = useState(false);
+  const [tipPercent, setTipPercent] = useState<number>(0);
+  const [customTip, setCustomTip] = useState<string>('');
+  const [showCustomTip, setShowCustomTip] = useState(false);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -67,13 +70,16 @@ export default function CheckoutPage() {
     setTableToken(tableTokenParam);
 
     try {
-      const cartData = JSON.parse(decodeURIComponent(cartParam));
+      const cartData: CartItem[] = JSON.parse(decodeURIComponent(cartParam));
       setCart(cartData);
       
       console.log('Cart data loaded:', cartData);
       
-      // Warenkorb sofort speichern für den Fall von Fehlern
+      // Warenkorb sofort speichern
       saveCartToStorage(cartData, venueIdParam, tableTokenParam);
+      
+      // ⚠️ Wichtig: Verwende die lokal geparsten Werte – State ist hier noch nicht gesetzt.
+      processOrder(venueIdParam!, tableTokenParam!, cartData);
     } catch (err) {
       console.error('Error parsing cart data:', err);
       
@@ -94,22 +100,25 @@ export default function CheckoutPage() {
       setLoading(false);
       return;
     }
-
-    processOrder();
   }, []);
 
-  const processOrder = async () => {
+  const processOrder = async (venueIdArg: string, tableTokenArg: string, cartArg: CartItem[]) => {
     try {
-      console.log('Starting checkout process...', { venueId, tableToken, cart });
+      // Parameter-Validierung
+      if (!venueIdArg || !tableTokenArg || !cartArg?.length) {
+        throw new Error('Fehlende Parameter (venueId/tableToken/cartData)');
+      }
+      
+      console.log('Starting checkout process...', { venueId: venueIdArg, tableToken: tableTokenArg, cart: cartArg });
       
       // 1. Checkout-Session erstellen
       const checkoutRes = await fetch('/api/checkout', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          venueId, 
-          tableToken, 
-          cartData: cart,
+          venueId: venueIdArg, 
+          tableToken: tableTokenArg, 
+          cartData: cartArg,
           sessionId: `checkout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         }) 
       });
@@ -140,7 +149,7 @@ export default function CheckoutPage() {
       const orderRes = await fetch('/api/orders', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venueId, tableToken }) 
+        body: JSON.stringify({ venueId: venueIdArg, tableToken: tableTokenArg }) 
       });
       
       if (!orderRes.ok) {
@@ -164,7 +173,7 @@ export default function CheckoutPage() {
       });
 
       // 4. Alle Artikel zur Bestellung hinzufügen
-      for (const cartItem of cart) {
+      for (const cartItem of cartArg) {
         console.log('Adding item to order:', cartItem);
         const itemRes = await fetch(`/api/orders/${order.id}/items`, { 
           method: 'POST', 
@@ -183,21 +192,15 @@ export default function CheckoutPage() {
         }
       }
 
-      // 5. Checkout als abgeschlossen markieren
-      await fetch(`/api/checkout/${checkoutData.checkout.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          status: 'COMPLETED'
-        })
-      });
-
-      // 6. Bestellung direkt als bezahlt markieren und zur Erfolgsseite
-      await markOrderAsPaid(order.id);
+      // 5. Checkout bleibt auf PROCESSING (nicht COMPLETED)
+      // 6. Test-Zahlungsdialog mit Trinkgeld öffnen (noch NICHT bestätigen)
+      setOrderId(order.id);
+      setShowPay(true);
+      setLoading(false);
     } catch (err) {
       console.error('Checkout error:', err);
       // Warenkorb bei Fehler speichern
-      saveCartToStorage();
+      saveCartToStorage(cartArg, venueIdArg, tableTokenArg);
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler beim Checkout');
       setLoading(false);
     }
@@ -220,29 +223,41 @@ export default function CheckoutPage() {
 
   const markOrderAsPaid = async (orderId: string) => {
     try {
-      console.log('Marking order as paid:', orderId);
+      if (!orderId) {
+        alert('Order-ID fehlt');
+        return;
+      }
       
-      // Bestellung direkt als bezahlt markieren
+      console.log('Processing order completion:', orderId);
+      
+      // Process order completion (handles PSP_PROVIDER=none automatically)
       const paymentRes = await fetch('/api/payments/intent', { 
         method: 'POST', 
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-venue-id': venueIdArg  // Add venue ID as header for tenant identification
+        },
         body: JSON.stringify({ orderId, paymentMethod: 'direct' }) 
       });
       
+      const data = await paymentRes.json().catch(() => ({}));
       if (!paymentRes.ok) {
-        const errorText = await paymentRes.text();
-        console.error('Payment marking failed:', paymentRes.status, errorText);
-        throw new Error(`Fehler beim Abschließen der Bestellung: ${paymentRes.status}`);
+        console.error('Order completion failed:', paymentRes.status, data);
+        alert(data?.error || 'Fehlende Parameter. Bitte versuchen Sie es erneut.');
+        return;
       }
       
-      const payment = await paymentRes.json();
-      console.log('Payment processed:', payment);
+      console.log('Order completed:', data);
       
       // Warenkorb leeren
       localStorage.removeItem('smartorder_cart');
       
       // Zur Erfolgsseite weiterleiten
-      window.location.href = payment.redirectUrl;
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+      alert('Unerwartete Antwort vom Server.');
     } catch (err) {
       console.error('Order completion error:', err);
       saveCartToStorage();
@@ -254,6 +269,51 @@ export default function CheckoutPage() {
 
   const getCartTotal = () => {
     return cart.reduce((total, item) => total + item.totalPrice, 0);
+  };
+
+  const calcTip = () => {
+    const total = getCartTotal();
+    if (showCustomTip && customTip !== '') {
+      const customAmount = parseFloat(customTip);
+      return isNaN(customAmount) ? 0 : customAmount;
+    }
+    return total * (tipPercent / 100);
+  };
+
+  const confirmTestPayment = async () => {
+    try {
+      const tipAmount = calcTip();
+      console.log('Sending payment request:', { orderId, paymentMethod: 'test', tipAmount });
+      
+      const res = await fetch('/api/payments/intent', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-venue-id': venueId  // Add venue ID as header for tenant identification
+        },
+        body: JSON.stringify({
+          orderId,
+          paymentMethod: 'test',
+          tipAmount,
+        }),
+      });
+      
+      console.log('Payment response status:', res.status);
+      const data = await res.json();
+      console.log('Payment response data:', data);
+      
+      if (!res.ok) {
+        console.error('Payment failed:', data);
+        alert(`Zahlung fehlgeschlagen: ${data?.error || 'Unbekannter Fehler'}`);
+        return;
+      }
+      
+      localStorage.removeItem('smartorder_cart');
+      window.location.href = data.redirectUrl;
+    } catch (err) {
+      console.error('Payment confirmation error:', err);
+      alert('Fehler bei der Zahlungsbestätigung: ' + (err instanceof Error ? err.message : 'Unbekannter Fehler'));
+    }
   };
 
   if (loading) {
@@ -318,6 +378,118 @@ export default function CheckoutPage() {
     );
   }
 
+
+  if (showPay) {
+    const total = getCartTotal();
+    const tipAmount = calcTip();
+    const finalTotal = total + tipAmount;
+
+    return (
+      <main className="max-w-2xl mx-auto p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h1 className="text-2xl font-bold mb-6 text-center">Zahlung bestätigen</h1>
+          
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-4">Bestellübersicht</h2>
+            <div className="space-y-2">
+              {cart.map((item, index) => (
+                <div key={index} className="flex justify-between">
+                  <span>{item.name} x {item.qty}</span>
+                  <span>CHF {item.totalPrice.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t pt-2 mt-4">
+              <div className="flex justify-between font-semibold">
+                <span>Zwischensumme:</span>
+                <span>CHF {total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-4">Trinkgeld</h2>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => { setTipPercent(0); setCustomTip(''); setShowCustomTip(false); }}
+                className={`p-3 rounded-lg border ${tipPercent === 0 && !showCustomTip ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}
+              >
+                0%
+              </button>
+              <button
+                onClick={() => { setTipPercent(5); setCustomTip(''); setShowCustomTip(false); }}
+                className={`p-3 rounded-lg border ${tipPercent === 5 && !showCustomTip ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}
+              >
+                5%
+              </button>
+              <button
+                onClick={() => { setTipPercent(10); setCustomTip(''); setShowCustomTip(false); }}
+                className={`p-3 rounded-lg border ${tipPercent === 10 && !showCustomTip ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}
+              >
+                10%
+              </button>
+              <button
+                onClick={() => { 
+                  setTipPercent(0); 
+                  setCustomTip(''); 
+                  setShowCustomTip(true);
+                  // Focus auf das Input-Feld nach einem kurzen Delay
+                  setTimeout(() => {
+                    const input = document.querySelector('input[type="number"]') as HTMLInputElement;
+                    if (input) input.focus();
+                  }, 100);
+                }}
+                className={`p-3 rounded-lg border ${showCustomTip ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-300'}`}
+              >
+                Custom
+              </button>
+            </div>
+            
+            {showCustomTip && (
+              <div className="mb-4">
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0"
+                  placeholder="Betrag in CHF"
+                  value={customTip}
+                  onChange={(e) => setCustomTip(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+            
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Trinkgeld:</span>
+              <span>CHF {tipAmount.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mb-6">
+            <div className="flex justify-between text-xl font-bold">
+              <span>Gesamtbetrag:</span>
+              <span>CHF {finalTotal.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <Link
+              href={`/t/${venueId}/${tableToken}`}
+              className="flex-1 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
+            >
+              Zurück zum Menü
+            </Link>
+            <button
+              onClick={confirmTestPayment}
+              className="flex-1 p-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Bezahlen (Test)
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-2xl mx-auto p-4">

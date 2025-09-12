@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@smartorder/db";
+import { prisma, prismaForTenant } from "@smartorder/db";
+import { getTenantIdFromRequest, requireTenant } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   // Set DATABASE_URL if not already set
@@ -7,17 +8,23 @@ export async function GET(req: NextRequest) {
     process.env.DATABASE_URL = "postgresql://smartorder:smartorder@localhost:5432/smartorder";
   }
   
+  try {
+    // Get tenant ID from request
+    const tenantId = getTenantIdFromRequest(req);
+    if (!tenantId) {
+      return NextResponse.json({ error: "Missing tenant ID" }, { status: 400 });
+  }
+  
   const { searchParams } = new URL(req.url);
-  const venueId = searchParams.get('venueId');
   const status = searchParams.get('status');
 
-  // For kitchen display, we need to show orders from all venues
-  // In a real app, you might want to add authentication here
+    // Use tenant-aware Prisma client
+    const tenantDb = prismaForTenant(tenantId);
+    
   const where: any = {};
-  if (venueId) where.venueId = venueId;
   if (status) where.status = status;
 
-  const orders = await prisma.order.findMany({
+    const orders = await tenantDb.order.findMany({
     where,
     include: {
       table: {
@@ -62,6 +69,10 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ orders });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -70,15 +81,24 @@ export async function POST(req: NextRequest) {
     process.env.DATABASE_URL = "postgresql://smartorder:smartorder@localhost:5432/smartorder";
   }
   
+  try {
   const { venueId, tableToken } = await req.json();
-  if (!venueId || !tableToken) return NextResponse.json({ error: "missing" }, { status: 400 });
+    if (!venueId || !tableToken) {
+      return NextResponse.json({ error: "Missing venueId or tableToken" }, { status: 400 });
+    }
 
-  const table = await prisma.table.findFirst({ where: { venueId, qrToken: tableToken } });
-  if (!table) return NextResponse.json({ error: "table not found" }, { status: 404 });
+    // Use tenant-aware Prisma client
+    const tenantDb = prismaForTenant(venueId);
 
-  const order = await prisma.order.create({
+    const table = await tenantDb.table.findFirst({ 
+      where: { qrToken: tableToken } 
+    });
+    if (!table) {
+      return NextResponse.json({ error: "Table not found" }, { status: 404 });
+    }
+
+    const order = await tenantDb.order.create({
     data: {
-      venueId,
       tableId: table.id,
       status: "DRAFT",
       total: 0,
@@ -88,4 +108,8 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(order);
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

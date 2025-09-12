@@ -2,6 +2,10 @@
   "name": "smartorder",
   "private": true,
   "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=18 <21",
+    "pnpm": ">=9"
+  },
   "scripts": {
     "dev": "pnpm -r dev",
     "build": "pnpm -r build",
@@ -9,7 +13,8 @@
     "db:push": "pnpm --filter db prisma db push",
     "db:migrate": "pnpm --filter db prisma migrate dev",
     "db:studio": "pnpm --filter db prisma studio",
-    "seed": "pnpm --filter db tsx prisma/seed.ts"
+    "seed": "pnpm --filter db tsx prisma/seed.ts",
+    "postinstall": "pnpm --filter db prisma generate"
   },
   "devDependencies": {
     "tsx": "^4.19.0"

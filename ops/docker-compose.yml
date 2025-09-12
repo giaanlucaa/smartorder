@@ -4,17 +4,32 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: smartorder
-      POSTGRES_PASSWORD: smartorder
-      POSTGRES_DB: smartorder
+      POSTGRES_USER: ${POSTGRES_USER:-smartorder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartorder}
+      POSTGRES_DB: ${POSTGRES_DB:-smartorder}
     ports: ["5432:5432"]
     volumes:
       - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartorder} -d ${POSTGRES_DB:-smartorder}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7
     restart: unless-stopped
     ports: ["6379:6379"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   dbdata:
+  redisdata:
