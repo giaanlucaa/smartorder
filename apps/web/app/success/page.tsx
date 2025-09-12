@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { UiFlags } from '@/lib/uiSettings';
+import { getTenantUiFromData } from '@/lib/getTenantUi';
 
 export default function Success() {
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -9,6 +11,11 @@ export default function Success() {
   const [isTest, setIsTest] = useState(false);
   const [venueId, setVenueId] = useState<string | null>(null);
   const [tableToken, setTableToken] = useState<string | null>(null);
+  const [uiFlags, setUiFlags] = useState<UiFlags>({
+    showBackToMenuDuringPayment: true,
+    showForgotSomethingAfterOrder: true,
+    showPaymentLoadingState: true,
+  });
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -29,6 +36,9 @@ export default function Success() {
         if (cartData.venueId && cartData.tableToken) {
           setVenueId(cartData.venueId);
           setTableToken(cartData.tableToken);
+          // Load UI flags for this venue
+          const flags = getTenantUiFromData();
+          setUiFlags(flags);
         }
       }
     } catch (error) {
@@ -76,7 +86,7 @@ export default function Success() {
           </p>
           
           <div className="flex justify-center">
-            {venueId && tableToken && (
+            {uiFlags.showForgotSomethingAfterOrder && venueId && tableToken && (
               <Link 
                 href={`/t/${venueId}/${tableToken}`}
                 className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors inline-block"

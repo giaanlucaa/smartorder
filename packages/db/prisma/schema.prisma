@@ -42,6 +42,11 @@ model Venue {
   themeColor   String?           // z.B. "#0055FF"
   logoUrl      String?           // S3 URL
   coverImageUrl String?          // optional hero background
+  // UI Configuration Flags
+  showBackToMenu    Boolean @default(true)  // Show "Zurück zum Menü" during payment
+  showForgotCta     Boolean @default(true)  // Show "Haben Sie was vergessen?" after order
+  showPaymentLoading Boolean @default(true) // Show loading state during payment
+  uiConfig          Json?                   // Additional UI configuration (JSON)
   // ---
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

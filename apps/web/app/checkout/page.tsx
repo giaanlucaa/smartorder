@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { BrowserOrderLogger } from '@smartorder/core/browser-logger';
+import { UiFlags } from '@/lib/uiSettings';
+import { getTenantUiFromData } from '@/lib/getTenantUi';
 
 interface CartItem {
   itemId: string;
@@ -25,6 +27,12 @@ export default function CheckoutPage() {
   const [tipPercent, setTipPercent] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
   const [showCustomTip, setShowCustomTip] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [uiFlags, setUiFlags] = useState<UiFlags>({
+    showBackToMenuDuringPayment: true,
+    showForgotSomethingAfterOrder: true,
+    showPaymentLoadingState: true,
+  });
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -69,6 +77,9 @@ export default function CheckoutPage() {
     setVenueId(venueIdParam);
     setTableToken(tableTokenParam);
 
+    // Load UI flags for this venue (with defaults)
+    loadUiFlags(venueIdParam!);
+
     try {
       const cartData: CartItem[] = JSON.parse(decodeURIComponent(cartParam));
       setCart(cartData);
@@ -101,6 +112,17 @@ export default function CheckoutPage() {
       return;
     }
   }, []);
+
+  const loadUiFlags = async (venueId: string) => {
+    try {
+      // For now, use defaults. In a real app, you'd fetch from API
+      const flags = getTenantUiFromData();
+      setUiFlags(flags);
+    } catch (error) {
+      console.warn('Failed to load UI flags, using defaults:', error);
+      // Defaults are already set in useState
+    }
+  };
 
   const processOrder = async (venueIdArg: string, tableTokenArg: string, cartArg: CartItem[]) => {
     try {
@@ -281,7 +303,10 @@ export default function CheckoutPage() {
   };
 
   const confirmTestPayment = async () => {
+    if (paymentLoading) return; // Prevent double-clicks
+    
     try {
+      setPaymentLoading(true);
       const tipAmount = calcTip();
       console.log('Sending payment request:', { orderId, paymentMethod: 'test', tipAmount });
       
@@ -313,6 +338,8 @@ export default function CheckoutPage() {
     } catch (err) {
       console.error('Payment confirmation error:', err);
       alert('Fehler bei der Zahlungsbestätigung: ' + (err instanceof Error ? err.message : 'Unbekannter Fehler'));
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -336,12 +363,14 @@ export default function CheckoutPage() {
           <h1 className="text-xl font-semibold mb-2 text-red-600">Fehler beim Checkout</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="space-y-3">
-            <Link 
-              href={`/t/${venueId}/${tableToken}`}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block"
-            >
-              Zurück zum Menü
-            </Link>
+            {uiFlags.showBackToMenuDuringPayment && (
+              <Link 
+                href={`/t/${venueId}/${tableToken}`}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block"
+              >
+                Zurück zum Menü
+              </Link>
+            )}
             <div>
               <button
                 onClick={() => {
@@ -473,17 +502,31 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex gap-4">
-            <Link
-              href={`/t/${venueId}/${tableToken}`}
-              className="flex-1 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
-            >
-              Zurück zum Menü
-            </Link>
+            {uiFlags.showBackToMenuDuringPayment && (
+              <Link
+                href={`/t/${venueId}/${tableToken}`}
+                className="flex-1 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
+              >
+                Zurück zum Menü
+              </Link>
+            )}
             <button
               onClick={confirmTestPayment}
-              className="flex-1 p-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              disabled={paymentLoading}
+              className={`flex-1 p-3 rounded-lg transition-colors ${
+                paymentLoading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700'
+              } text-white`}
             >
-              Bezahlen (Test)
+              {paymentLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Zahlung läuft...
+                </div>
+              ) : (
+                'Bezahlen (Test)'
+              )}
             </button>
           </div>
         </div>
