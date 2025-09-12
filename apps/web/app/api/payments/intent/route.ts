@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing tenant ID' }, { status: 400 });
     }
 
-    // Use tenant-aware Prisma client
+    // Use tenant-aware Prisma client for order operations
     const tenantDb = prismaForTenant(tenantId);
     
     const order = await tenantDb.order.findFirst({ where: { id: orderId } });
@@ -72,10 +72,10 @@ export async function POST(req: Request) {
             data: { status: 'PAID', tipAmount: tip },
           });
 
-          // Payment erfassen
-          await tx.payment.create({
-        data: {
-          orderId: order.id,
+          // Payment erfassen (using regular prisma since Payment doesn't have venueId)
+          await prisma.payment.create({
+            data: {
+              orderId: order.id,
               provider: provider || 'test',
               providerRef: `${provider || 'test'}_${Date.now()}`,
               status: 'SETTLED',

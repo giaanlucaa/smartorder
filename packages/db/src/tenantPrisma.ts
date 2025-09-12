@@ -9,7 +9,6 @@ import { prisma } from './index';
 // Models that have venueId and should be tenant-isolated
 const TENANT_MODELS = new Set([
   'Order',
-  'Payment', 
   'MenuItem',
   'MenuCategory',
   'Table',
