@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { BrowserOrderLogger } from '@smartorder/core/browser-logger';
+import Pusher from 'pusher-js';
 
 interface OrderItem {
   id: string;
@@ -51,14 +52,105 @@ export default function KitchenPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('all');
+  const [venueId, setVenueId] = useState<string>('');
 
   useEffect(() => {
     fetchOrders();
     
-    // Polling für Echtzeit-Updates (später durch Pusher ersetzen)
-    const interval = setInterval(fetchOrders, 5000);
+    // Initialize Pusher for real-time updates
+    initializePusher();
+    
+    // Fallback polling (reduced frequency since we have Pusher)
+    const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const initializePusher = () => {
+    try {
+      const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY || 'dummy', {
+        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'eu',
+        forceTLS: true
+      });
+
+      // Subscribe to all venues (in a real app, you'd filter by current venue)
+      const channel = pusher.subscribe('venue-demo');
+      
+      channel.bind('order-paid', (data: any) => {
+        console.log('New order received via Pusher:', data);
+        
+        // Update orders list immediately
+        setOrders(prevOrders => {
+          const existingOrderIndex = prevOrders.findIndex(order => order.id === data.orderId);
+          
+          if (existingOrderIndex >= 0) {
+            // Update existing order
+            const updatedOrders = [...prevOrders];
+            updatedOrders[existingOrderIndex] = {
+              ...updatedOrders[existingOrderIndex],
+              status: data.status,
+              tipAmount: data.tipAmount,
+              updatedAt: data.paidAt
+            };
+            return updatedOrders;
+          } else {
+            // Add new order (this shouldn't happen in normal flow, but just in case)
+            const newOrder: Order = {
+              id: data.orderId,
+              status: data.status,
+              total: parseFloat(data.total),
+              taxTotal: 0, // Will be updated on next fetch
+              tipAmount: parseFloat(data.tipAmount || 0),
+              createdAt: data.createdAt,
+              updatedAt: data.paidAt,
+              table: {
+                label: data.table,
+                area: { name: data.area }
+              },
+              venue: {
+                id: 'demo',
+                name: 'Demo Restaurant',
+                currency: 'CHF'
+              },
+              items: data.items.map((item: any) => ({
+                id: item.id,
+                qty: item.qty,
+                unitPrice: parseFloat(item.unitPrice),
+                modifiers: item.modifiers,
+                item: {
+                  id: item.id,
+                  name: item.name,
+                  description: '',
+                  allergens: []
+                }
+              })),
+              payments: data.payments || []
+            };
+            return [newOrder, ...prevOrders];
+          }
+        });
+
+        // Log for accounting
+        logger.logOrderForAccounting({
+          orderId: data.orderId,
+          venueId: data.venueId || 'demo',
+          tableId: data.table,
+          tableLabel: data.table,
+          total: parseFloat(data.total),
+          taxTotal: 0,
+          tipAmount: parseFloat(data.tipAmount || 0),
+          currency: 'CHF',
+          items: data.items,
+          payments: data.payments || [],
+          createdAt: data.createdAt,
+          status: data.status
+        });
+      });
+
+      console.log('Pusher initialized for kitchen dashboard');
+    } catch (error) {
+      console.error('Failed to initialize Pusher:', error);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -66,6 +158,11 @@ export default function KitchenPage() {
       const data = await res.json();
       const newOrders = data.orders || [];
       setOrders(newOrders);
+      
+      // Set venue ID from first order for Pusher channel
+      if (newOrders.length > 0 && !venueId) {
+        setVenueId(newOrders[0].venue.id);
+      }
       
       // Logge alle Bestellungen für Buchhaltung
       newOrders.forEach((order: Order) => {

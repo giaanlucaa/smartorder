@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma, prismaForTenant } from "@smartorder/db";
 import { Prisma } from "@prisma/client";
 import { getTenantIdFromRequest } from "@/lib/tenant";
+import Pusher from "pusher";
 
 const Body = z.object({
   orderId: z.string().min(1),
@@ -11,6 +12,132 @@ const Body = z.object({
   tipAmount: z.number().min(0).optional(),      // CHF
   tipPercent: z.number().min(0).max(100).optional(),
 }).partial();
+
+// Initialize Pusher for real-time notifications
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID || 'dummy',
+  key: process.env.PUSHER_KEY || 'dummy',
+  secret: process.env.PUSHER_SECRET || 'dummy',
+  cluster: process.env.PUSHER_CLUSTER || 'eu',
+  useTLS: true,
+});
+
+/**
+ * Notify kitchen dashboard and accounting systems about completed order
+ */
+async function notifyKitchenAndAccounting(orderId: string, venueId: string) {
+  try {
+    // Get order details for notifications
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            item: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                allergens: true
+              }
+            }
+          }
+        },
+        table: {
+          include: {
+            area: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            currency: true
+          }
+        },
+        payments: {
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            amount: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+
+    if (!order) {
+      console.warn(`[payments/intent] Order ${orderId} not found for notifications`);
+      return;
+    }
+
+    // 1. Notify Kitchen Dashboard via Pusher
+    try {
+      await pusher.trigger(`venue-${venueId}`, 'order-paid', {
+        orderId: order.id,
+        status: order.status,
+        total: order.total,
+        tipAmount: order.tipAmount,
+        table: order.table.label,
+        area: order.table.area.name,
+        items: order.items.map(item => ({
+          id: item.id,
+          name: item.item.name,
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          modifiers: item.modifiers
+        })),
+        payments: order.payments,
+        createdAt: order.createdAt,
+        paidAt: new Date().toISOString()
+      });
+      console.log(`[payments/intent] Kitchen notification sent for order ${orderId}`);
+    } catch (pusherError) {
+      console.error('[payments/intent] Pusher notification failed:', pusherError);
+    }
+
+    // 2. Log for Accounting System
+    console.log(`[ACCOUNTING] Order completed:`, {
+      orderId: order.id,
+      venueId: order.venue.id,
+      venueName: order.venue.name,
+      tableId: order.table.label,
+      area: order.table.area.name,
+      total: order.total.toString(),
+      taxTotal: order.taxTotal.toString(),
+      tipAmount: order.tipAmount?.toString() || '0',
+      currency: order.venue.currency,
+      itemCount: order.items.length,
+      paymentCount: order.payments.length,
+      status: order.status,
+      createdAt: order.createdAt.toISOString(),
+      paidAt: new Date().toISOString()
+    });
+
+    // 3. Optional: Trigger kitchen printer (if configured)
+    // This could be implemented based on venue settings
+    if (process.env.KITCHEN_PRINTER_ENABLED === 'true') {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/print/kitchen`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            orderId: order.id,
+            printerIp: process.env.KITCHEN_PRINTER_IP 
+          })
+        });
+        console.log(`[payments/intent] Kitchen print job triggered for order ${orderId}`);
+      } catch (printError) {
+        console.error('[payments/intent] Kitchen print failed:', printError);
+      }
+    }
+
+  } catch (error) {
+    console.error('[payments/intent] Notification error:', error);
+    // Don't fail the payment if notifications fail
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -90,6 +217,9 @@ export async function POST(req: Request) {
             data: { status: 'COMPLETED', tipAmount: tip, completedAt: new Date() },
           });
       });
+
+      // Notify kitchen dashboard and accounting systems
+      await notifyKitchenAndAccounting(orderId, tenantId);
 
       const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/success?order=${orderId}`;
         console.log('[payments/intent] Payment successful, redirecting to:', redirectUrl);
