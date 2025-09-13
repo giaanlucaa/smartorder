@@ -9,11 +9,14 @@ interface Venue {
   name: string;
   themeColor?: string;
   logoUrl?: string;
+  currency?: string;
 }
 
 export default function Admin() {
   const [venue, setVenue] = useState<Venue | null>(null);
+  const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [switchingTenant, setSwitchingTenant] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,12 +25,22 @@ export default function Admin() {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/admin/auth/me');
-      if (response.ok) {
-        const data = await response.json();
+      const [authResponse, venuesResponse] = await Promise.all([
+        fetch('/api/admin/auth/me'),
+        fetch('/api/admin/venues')
+      ]);
+      
+      if (authResponse.ok) {
+        const data = await authResponse.json();
         setVenue(data.venue);
-      } else if (response.status === 401) {
+      } else if (authResponse.status === 401) {
         router.push('/admin/auth/login');
+        return;
+      }
+      
+      if (venuesResponse.ok) {
+        const venuesData = await venuesResponse.json();
+        setVenues(venuesData.venues || []);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -43,6 +56,30 @@ export default function Admin() {
       router.push('/admin/auth/login');
     } catch (error) {
       console.error('Logout failed:', error);
+    }
+  };
+
+  const switchTenant = async (venueId: string) => {
+    if (venueId === venue?.id) return; // Already selected
+    
+    setSwitchingTenant(true);
+    try {
+      const response = await fetch('/api/admin/tenant/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venueId })
+      });
+      
+      if (response.ok) {
+        // Reload the page to get the new tenant context
+        window.location.reload();
+      } else {
+        console.error('Failed to switch tenant');
+      }
+    } catch (error) {
+      console.error('Error switching tenant:', error);
+    } finally {
+      setSwitchingTenant(false);
     }
   };
 
@@ -78,6 +115,27 @@ export default function Admin() {
           </div>
         </div>
         <div className="flex items-center space-x-4">
+          {venues.length > 1 && (
+            <div className="relative">
+              <select
+                value={venue?.id || ''}
+                onChange={(e) => switchTenant(e.target.value)}
+                disabled={switchingTenant}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+              {switchingTenant && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                </div>
+              )}
+            </div>
+          )}
           <Link 
             href="/admin/settings"
             className="text-gray-600 hover:text-gray-900"

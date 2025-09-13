@@ -154,7 +154,7 @@ export default function KitchenPage() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/kitchen/orders');
       const data = await res.json();
       const newOrders = data.orders || [];
       setOrders(newOrders);

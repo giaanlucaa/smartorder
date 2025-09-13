@@ -11,6 +11,9 @@ export async function GET(req: NextRequest) {
   try {
     // Get tenant ID from request
     const tenantId = getTenantIdFromRequest(req);
+    console.log('[orders-api] tenantId from request:', tenantId);
+    console.log('[orders-api] x-venue-id header:', req.headers.get('x-venue-id'));
+    
     if (!tenantId) {
       return NextResponse.json({ error: "Missing tenant ID" }, { status: 400 });
   }

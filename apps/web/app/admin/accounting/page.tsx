@@ -66,7 +66,7 @@ export default function AccountingPage() {
         params.append('status', statusFilter);
       }
       
-      const res = await fetch(`/api/orders?${params.toString()}`);
+      const res = await fetch(`/api/kitchen/orders?${params.toString()}`);
       const data = await res.json();
       const allOrders = data.orders || [];
       
