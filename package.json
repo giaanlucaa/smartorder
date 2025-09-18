@@ -1,0 +1,18 @@
+{
+  "name": "smartorder",
+  "private": true,
+  "packageManager": "pnpm@9",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "build": "pnpm -r build",
+    "start": "pnpm -r start",
+    "db:push": "pnpm --filter db prisma db push",
+    "db:migrate": "pnpm --filter db prisma migrate dev",
+    "db:studio": "pnpm --filter db prisma studio",
+    "seed": "pnpm --filter db tsx prisma/seed.ts",
+    "migrate:neon": "node scripts/migrate-to-neon.js"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
