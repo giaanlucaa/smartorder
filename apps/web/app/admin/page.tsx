@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import AdminLayout from '../components/AdminLayout';
 
 interface Venue {
@@ -22,11 +21,11 @@ interface DashboardStats {
 export default function AdminPage() {
   const [venue, setVenue] = useState<Venue | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
-          activeTables: 0,
-          todaysOrders: 0,
-          todaysRevenue: 0,
-          menuItems: 0
-        });
+    activeTables: 0,
+    todaysOrders: 0,
+    todaysRevenue: 0,
+    menuItems: 0
+  });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -48,13 +47,13 @@ export default function AdminPage() {
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setStats(statsData);
-      }
-    } catch (error) {
+        }
+      } catch (error) {
         console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadData();
   }, [router]);
@@ -124,80 +123,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/admin/tables" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <span className="text-2xl">🏷️</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Tische verwalten</h3>
-                <p className="text-sm text-gray-600">QR-Codes generieren und Tische einrichten</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/admin/categories" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <span className="text-2xl">📂</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Kategorien</h3>
-                <p className="text-sm text-gray-600">Menü-Kategorien verwalten</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/admin/items" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <span className="text-2xl">➕</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Artikel</h3>
-                <p className="text-sm text-gray-600">Menü-Artikel hinzufügen und bearbeiten</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/admin/accounting" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <span className="text-2xl">📊</span>
-                </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Buchhaltung</h3>
-                <p className="text-sm text-gray-600">Umsätze und Bestellungen analysieren</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/admin/settings" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gray-100 rounded-lg">
-                <span className="text-2xl">⚙️</span>
-                </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Einstellungen</h3>
-                <p className="text-sm text-gray-600">Restaurant-Informationen verwalten</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/kitchen" className="dashboard-card p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-red-100 rounded-lg">
-                <span className="text-2xl">🍳</span>
-                </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Küchen-Display</h3>
-                <p className="text-sm text-gray-600">Bestellungen in der Küche anzeigen</p>
-              </div>
-            </div>
-          </Link>
-        </div>
 
         {/* Welcome Message */}
         <div className="dashboard-card p-6">
