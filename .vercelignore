@@ -1,5 +1,4 @@
-# Ignore everything except the web app
-packages/
+# Ignore everything except the web app and required packages
 apps/kitchen/
 apps/mobile/
 scripts/
@@ -11,8 +10,9 @@ scripts/
 migrate-to-neon.md
 VERCEL_DEPLOYMENT.md
 
-# Keep only the web app
+# Keep the web app and all packages (needed for workspace)
 !apps/web/
+!packages/
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
