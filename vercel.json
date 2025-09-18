@@ -1,23 +1,8 @@
 {
-  "version": 2,
-  "installCommand": "pnpm install --frozen-lockfile=false",
   "buildCommand": "pnpm --filter web build",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": "apps/web/.next",
-  "builds": [
-    {
-      "src": "apps/web/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "apps/web/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
+  "framework": "nextjs",
   "functions": {
     "apps/web/app/api/**/*.ts": {
       "maxDuration": 30
