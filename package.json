@@ -1,7 +1,10 @@
 {
   "name": "smartorder",
   "private": true,
-  "packageManager": "pnpm@9",
+  "engines": {
+    "node": "20.x"
+  },
+  "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "pnpm -r dev",
     "build": "pnpm -r build",
