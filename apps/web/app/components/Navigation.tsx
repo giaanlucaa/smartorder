@@ -45,10 +45,8 @@ export default function Navigation() {
     loadUserData();
   }, [pathname]);
   
-  // Nur auf Admin-Seiten anzeigen, aber nicht auf der Hauptseite oder Auth-Seiten (da wir die Sidebar haben)
-  if (!pathname.startsWith('/admin') || pathname === '/admin' || pathname.startsWith('/admin/auth')) {
-    return null;
-  }
+  // Navigation komplett deaktiviert - wird überall ausgeblendet
+  return null;
 
 
   const handleLogout = async () => {

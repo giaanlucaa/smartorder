@@ -31,7 +31,7 @@ export default function TablesPage() {
   const [newTableLabel, setNewTableLabel] = useState('');
   const [creating, setCreating] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [qrData, setQrData] = useState<{dataUrl: string, tableLabel: string} | null>(null);
+  const [qrData, setQrData] = useState<{dataUrl: string, tableLabel: string, qrUrl: string} | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -87,7 +87,8 @@ export default function TablesPage() {
         // Set QR data and show modal
         setQrData({
           dataUrl: data.qrCodeDataUrl,
-          tableLabel: data.tableLabel
+          tableLabel: data.tableLabel,
+          qrUrl: data.qrUrl
         });
         setShowQRModal(true);
       } else {
@@ -386,6 +387,33 @@ export default function TablesPage() {
                     alt={`QR Code für ${qrData.tableLabel}`}
                     className="mx-auto max-w-full h-auto"
                   />
+                </div>
+                
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h5 className="text-sm font-medium text-blue-800 mb-2">🔗 Test-URL:</h5>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={qrData.qrUrl}
+                      readOnly
+                      className="flex-1 px-3 py-2 text-xs bg-white border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(qrData.qrUrl);
+                        alert('URL in Zwischenablage kopiert!');
+                      }}
+                      className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                    >
+                      📋 Kopieren
+                    </button>
+                    <button
+                      onClick={() => window.open(qrData.qrUrl, '_blank')}
+                      className="px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                    >
+                      🔗 Öffnen
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex space-x-3">
