@@ -7,8 +7,5 @@
     "apps/web/app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "engines": {
-    "node": "20.x"
   }
 }
