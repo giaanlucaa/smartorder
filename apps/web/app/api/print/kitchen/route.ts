@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@smartorder/db";
-import { printKitchenText, formatKitchen } from "@smartorder/printer";
+import { formatKitchen } from "@smartorder/printer";
 
 export async function POST(req: NextRequest) {
   // Set DATABASE_URL if not already set
@@ -14,7 +14,13 @@ export async function POST(req: NextRequest) {
     include: { items: { include: { item: true } }, venue: true },
   });
   if (!order) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const text = formatKitchen(order as any);
-  await printKitchenText(printerIp, text);
-  return NextResponse.json({ ok: true });
+  const html = formatKitchen(order as any);
+  
+  // For server-side printing, we return the formatted HTML
+  // The client can then handle the actual printing
+  return NextResponse.json({ 
+    ok: true, 
+    html,
+    printerIp 
+  });
 }
