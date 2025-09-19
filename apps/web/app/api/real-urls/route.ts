@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@smartorder/db";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
-  // Set DATABASE_URL if not already set
   if (!process.env.DATABASE_URL) {
-    process.env.DATABASE_URL = "postgresql://smartorder:smartorder@localhost:5432/smartorder";
+    // Build-Zeit/Fallback: kein DB-Zugriff
+    return NextResponse.json({ 
+      allTables: [], 
+      tisch1: null 
+    }, { status: 200 });
   }
   
   try {
