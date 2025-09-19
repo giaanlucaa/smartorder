@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-// @ts-expect-error: Module may not be available in all environments
 import { BrowserOrderLogger } from '@smartorder/core/browser-logger';
 
 interface CartItem {
