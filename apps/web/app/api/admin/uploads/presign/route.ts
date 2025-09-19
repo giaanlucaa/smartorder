@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "../../../../../../../packages/auth/src/session";
-import { generatePresignedUpload } from "../../../../../../../packages/upload/src/index";
+import { generatePresignedUpload } from "@smartorder/upload";
 
 export async function POST(req: NextRequest) {
   try {

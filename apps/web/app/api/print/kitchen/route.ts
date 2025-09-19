@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@smartorder/db";
-import { printKitchenText } from "@smartorder/printer/send";
-import { formatKitchen } from "@smartorder/printer/format";
+import { printKitchenText, formatKitchen } from "@smartorder/printer";
 
 export async function POST(req: NextRequest) {
   // Set DATABASE_URL if not already set
