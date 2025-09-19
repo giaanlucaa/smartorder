@@ -88,7 +88,7 @@ export default function BrowserKitchenPage() {
         items: order.items.map(item => ({
           name: item.item.name,
           quantity: item.qty,
-          modifiers: Object.values(item.modifiers || {}).flat(),
+          modifiers: Object.values(item.modifiers || {}).flat() as string[],
           notes: item.item.description
         })),
         timestamp: new Date(order.createdAt),
@@ -110,7 +110,7 @@ export default function BrowserKitchenPage() {
         items: order.items.map(item => ({
           name: item.item.name,
           quantity: item.qty,
-          modifiers: Object.values(item.modifiers || {}).flat(),
+          modifiers: Object.values(item.modifiers || {}).flat() as string[],
           notes: item.item.description
         })),
         timestamp: new Date(order.createdAt),
