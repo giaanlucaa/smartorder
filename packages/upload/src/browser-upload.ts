@@ -250,7 +250,7 @@ export function selectFiles(options: UploadOptions = {}): Promise<File[]> {
 export async function generatePresignedUpload(
   filename: string,
   contentType: string,
-  maxSize: number = 5 * 1024 * 1024
+  venueId: string
 ): Promise<{ url: string; fields: Record<string, string> }> {
   // Diese Funktion sollte normalerweise einen API-Call machen
   // Für jetzt geben wir eine Dummy-Implementierung zurück
