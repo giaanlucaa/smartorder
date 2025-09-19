@@ -6,16 +6,17 @@ import Link from 'next/link';
 
 
 interface LoginResponse {
-  user: {
+  user?: {
     id: string;
     email: string;
     name: string;
   };
-  venue: {
+  venue?: {
     id: string;
     name: string;
     slug: string;
   };
+  error?: string;
 }
 
 export default function AdminLoginPage() {

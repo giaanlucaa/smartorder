@@ -245,3 +245,81 @@ export function downloadOrderAsText(order: PrintOrder): void {
   
   URL.revokeObjectURL(url);
 }
+
+// Küchen-spezifische Formatierung
+export function formatKitchen(order: PrintOrder): string {
+  const timestamp = order.timestamp.toLocaleString('de-DE');
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Küchenzettel ${order.orderId}</title>
+      <style>
+        @media print { body { margin: 0; } .no-print { display: none; } }
+        body { font-family: 'Courier New', monospace; font-size: 14px; margin: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .order-info { margin-bottom: 20px; background: #f0f0f0; padding: 10px; }
+        .items { margin-bottom: 20px; }
+        .item { margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; }
+        .item-name { font-weight: bold; font-size: 16px; }
+        .quantity { float: right; font-weight: bold; font-size: 18px; color: #d32f2f; }
+        .modifiers { margin-left: 20px; font-size: 12px; color: #666; }
+        .urgent { background: #ffebee; border-color: #f44336; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🍳 KÜCHE</h1>
+        <h2>Bestellung ${order.orderId}</h2>
+      </div>
+      
+      <div class="order-info">
+        <strong>Tisch:</strong> ${order.tableLabel}<br>
+        <strong>Zeit:</strong> ${timestamp}
+      </div>
+      
+      <div class="items">
+        ${order.items.map(item => `
+          <div class="item">
+            <span class="quantity">${item.quantity}x</span>
+            <span class="item-name">${item.name}</span>
+            ${item.modifiers && item.modifiers.length > 0 ? `
+              <div class="modifiers">
+                ${item.modifiers.map(mod => `• ${mod}`).join('<br>')}
+              </div>
+            ` : ''}
+            ${item.notes ? `<div class="modifiers"><strong>Notiz:</strong> ${item.notes}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="no-print">
+        <button onclick="window.print()" style="background: #4caf50; color: white; border: none; padding: 15px 30px; font-size: 16px; cursor: pointer; margin: 10px;">Drucken</button>
+        <button onclick="window.close()" style="background: #f44336; color: white; border: none; padding: 15px 30px; font-size: 16px; cursor: pointer; margin: 10px;">Schließen</button>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// Küchen-Text drucken
+export function printKitchenText(order: PrintOrder): void {
+  const html = formatKitchen(order);
+  const printWindow = window.open('', '_blank', 'width=600,height=800');
+  
+  if (!printWindow) {
+    throw new Error('Popup wurde blockiert');
+  }
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+  
+  // Automatisch drucken nach dem Laden
+  printWindow.onload = () => {
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+}
