@@ -116,7 +116,7 @@ export async function PUT(
           taxRate: parseFloat(taxRate || '8.1'),
           allergens: allergens || [],
           imageUrl: imageUrl?.trim() || null,
-          isActive: isAvailable !== undefined ? isAvailable : true,
+          isActive: isActive !== undefined ? isActive : true,
           categoryId: category.id,
         },
         include: {
