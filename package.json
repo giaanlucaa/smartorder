@@ -2,7 +2,7 @@
   "name": "smartorder",
   "private": true,
   "engines": {
-    "node": ">=18 <21"
+    "node": "19.9"
   },
   "packageManager": "pnpm@10.15.1",
   "scripts": {
