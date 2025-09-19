@@ -8,6 +8,11 @@ export async function POST(req: NextRequest) {
   if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL = "postgresql://smartorder:smartorder@localhost:5432/smartorder";
   }
+  
+  // Set SESSION_SECRET if not already set
+  if (!process.env.SESSION_SECRET) {
+    process.env.SESSION_SECRET = "fallback-session-secret-change-in-production";
+  }
 
   try {
     const { email, password, venueName, ownerName } = await req.json();
@@ -101,6 +106,16 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Signup error:", error);
+    
+    // Return more detailed error information in development
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json({ 
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      }, { status: 500 });
+    }
+    
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
