@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { generateTableQR, showQRInWindow, downloadQRCode } from '@smartorder/qr/browser-generate';
+import { generateTableQR, showQRInWindow, downloadQRCode } from '@smartorder/qr';
 
 interface Table {
   id: string;
