@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@smartorder/db";
 // import { getProvider } from "../../../../../packages/psp/src/index";
+// Zod import removed as it's not used in this file
 
 export async function POST(req: NextRequest) {
   // Set DATABASE_URL if not already set

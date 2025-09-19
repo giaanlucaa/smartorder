@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { generateTableQR, showQRInWindow, downloadQRCode } from '@smartorder/qr/browser-generate';
 import { printOrderInWindow, downloadOrderAsText } from '@smartorder/printer/browser-format';
-import { uploadFile, selectFile, createDropZone } from '@smartorder/upload/browser-upload';
+// Temporarily disable upload functionality for build
+// import { uploadFile, selectFile, createDropZone } from '@smartorder/upload/browser-upload';
 import { BrowserOrderLogger } from '@smartorder/core/browser-logger';
 
 export default function TestBrowserPage() {
@@ -95,32 +96,9 @@ export default function TestBrowserPage() {
     downloadOrderAsText(testOrder);
   };
 
-  // Upload-Test
+  // Upload-Test (temporarily disabled for build)
   const testUpload = async () => {
-    try {
-      const file = await selectFile({
-        allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-        maxSize: 5 * 1024 * 1024 // 5MB
-      });
-
-      if (file) {
-        const result = await uploadFile(file, {
-          allowedTypes: ['image/jpeg', 'image/png', 'image/webp'],
-          maxSize: 5 * 1024 * 1024,
-          quality: 0.8
-        });
-
-        if (result.success && result.dataUrl) {
-          setUploadResult(result.dataUrl);
-          logger.logCheckoutSuccess('test-upload', { fileName: file.name, size: file.size });
-        } else {
-          logger.logCheckoutError('Upload fehlgeschlagen', { error: result.error });
-        }
-      }
-    } catch (error) {
-      console.error('Upload-Test-Fehler:', error);
-      logger.logCheckoutError('Upload-Test fehlgeschlagen', { error: String(error) });
-    }
+    alert('Upload-Funktionalität temporär deaktiviert für Build');
   };
 
   // Logs anzeigen
@@ -129,27 +107,9 @@ export default function TestBrowserPage() {
     setLogs(storageLogs);
   };
 
-  // Drag & Drop Setup
+  // Drag & Drop Setup (temporarily disabled for build)
   const setupDropZone = () => {
-    const dropZone = document.getElementById('drop-zone');
-    if (dropZone) {
-      const cleanup = createDropZone(
-        dropZone,
-        async (files) => {
-          setDragActive(false);
-          if (files.length > 0) {
-            const file = files[0];
-            const result = await uploadFile(file);
-            if (result.success && result.dataUrl) {
-              setUploadResult(result.dataUrl);
-            }
-          }
-        },
-        { allowedTypes: ['image/jpeg', 'image/png', 'image/webp'] }
-      );
-
-      return cleanup;
-    }
+    // Temporarily disabled for build
   };
 
   return (
