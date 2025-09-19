@@ -8,6 +8,16 @@ export async function POST(req: NextRequest) {
   if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL = "postgresql://smartorder:smartorder@localhost:5432/smartorder";
   }
+  
+  // Set SESSION_SECRET if not already set
+  if (!process.env.SESSION_SECRET) {
+    process.env.SESSION_SECRET = "fallback-session-secret-change-in-production";
+  }
+  
+  // Set JWT_SECRET if not already set
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = "fallback-jwt-secret-change-in-production";
+  }
 
   try {
     const { email, password } = await req.json();

@@ -13,6 +13,11 @@ export async function POST(req: NextRequest) {
   if (!process.env.SESSION_SECRET) {
     process.env.SESSION_SECRET = "fallback-session-secret-change-in-production";
   }
+  
+  // Set JWT_SECRET if not already set
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = "fallback-jwt-secret-change-in-production";
+  }
 
   try {
     const { email, password, venueName, ownerName } = await req.json();
