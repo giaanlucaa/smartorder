@@ -3,6 +3,9 @@ import { prisma } from "@smartorder/db";
 import { requireAuth } from "@smartorder/auth/session";
 import { withTenantIsolation } from "@smartorder/auth/tenant";
 
+// Force Node.js runtime for Prisma compatibility
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
   // Set DATABASE_URL if not already set
   if (!process.env.DATABASE_URL) {

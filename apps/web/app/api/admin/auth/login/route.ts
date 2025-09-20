@@ -3,6 +3,9 @@ import { prisma } from "@smartorder/db";
 import { verifyPassword } from "@smartorder/auth";
 import { createSession } from "@smartorder/auth/session";
 
+// Force Node.js runtime for Prisma compatibility
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   // Set DATABASE_URL if not already set
   if (!process.env.DATABASE_URL) {

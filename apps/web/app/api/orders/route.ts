@@ -3,6 +3,8 @@ import { prisma } from "@smartorder/db";
 import { requireAuth } from "@smartorder/auth/session";
 import { withTenantIsolation } from "@smartorder/auth/tenant";
 
+// Force Node.js runtime for Prisma compatibility
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
